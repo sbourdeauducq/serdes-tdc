@@ -323,11 +323,9 @@ wire timer0_irq;
 wire timer1_irq;
 wire uartrx_irq;
 wire uarttx_irq;
-wire tdc_irq;
 
 wire [31:0] cpu_interrupt;
-assign cpu_interrupt = {26'd0,
-	tdc_irq,
+assign cpu_interrupt = {27'd0,
 	uarttx_irq,
 	uartrx_irq,
 	timer1_irq,
@@ -475,7 +473,7 @@ wire [1:0] tdc_calib;
 
 stdc_hostif tdc(
 	.sys_rst_i(sys_rst),
-	.wb_clk_i(sys_clk),
+	.sys_clk_i(sys_clk),
 
 	.wb_addr_i(tdc_adr),
 	.wb_data_i(tdc_dat_w),
@@ -485,7 +483,6 @@ stdc_hostif tdc(
 	.wb_stb_i(tdc_stb),
 	.wb_we_i(tdc_we),
 	.wb_ack_o(tdc_ack),
-	.wb_irq_o(tdc_irq),
 
 	.cc_rst_i(1'b0),
 	.cc_cy_o(),
