@@ -48,14 +48,110 @@ module system(
 // Clock and Reset Generation
 //------------------------------------------------------------------
 wire sys_clk;
-wire resetin = ~resetin_n;
-wire hard_reset;
+wire serdes_clk;
+wire serdes_strobe;
 
+wire clkin_se;
 IBUFGDS clkbuf(
 	.I(clkin_p),
 	.IB(clkin_n),
+	.O(clkin_se)
+);
+
+wire clkin_bufio;
+BUFIO2 #(
+	.DIVIDE(1),
+	.DIVIDE_BYPASS("FALSE"),
+	.I_INVERT("FALSE")
+) bufio2_inst2 (
+	.I(clkin_se),
+	.IOCLK(),
+	.DIVCLK(clkin_bufio),
+	.SERDESSTROBE()
+);
+
+wire pll_lckd;
+wire buf_pll_fb_out;
+wire pllout0;
+wire pllout1;
+PLL_ADV #(
+	.BANDWIDTH("OPTIMIZED"),
+	.CLKFBOUT_MULT(8),
+	.CLKFBOUT_PHASE(0.0),
+	.CLKIN1_PERIOD(8.0),
+	.CLKIN2_PERIOD(8.0),
+	.CLKOUT0_DIVIDE(8),
+	.CLKOUT0_DUTY_CYCLE(0.5),
+	.CLKOUT0_PHASE(0),
+	.CLKOUT1_DIVIDE(1),
+	.CLKOUT1_DUTY_CYCLE(0.5),
+	.CLKOUT1_PHASE(0),
+	.CLKOUT2_DIVIDE(8),
+	.CLKOUT2_DUTY_CYCLE(0.5),
+	.CLKOUT2_PHASE(270.0),
+	.CLKOUT3_DIVIDE(8),
+	.CLKOUT3_DUTY_CYCLE(0.5),
+	.CLKOUT3_PHASE(0.0),
+	.CLKOUT4_DIVIDE(8),
+	.CLKOUT4_DUTY_CYCLE(0.5),
+	.CLKOUT4_PHASE(0),
+	.CLKOUT5_DIVIDE(8),
+	.CLKOUT5_DUTY_CYCLE(0.5),
+	.CLKOUT5_PHASE(0.0),
+	.COMPENSATION("INTERNAL"),
+	.DIVCLK_DIVIDE(1),
+	.REF_JITTER(0.100),
+	.CLK_FEEDBACK("CLKFBOUT"),
+	.SIM_DEVICE("SPARTAN6")
+) pll (
+	.CLKFBDCM(),
+	.CLKFBOUT(buf_pll_fb_out),
+	.CLKOUT0(pllout0), /* < x1 clock for system */
+	.CLKOUT1(pllout1), /* < x8 clock for sampling */
+	.CLKOUT2(),
+	.CLKOUT3(),
+	.CLKOUT4(),
+	.CLKOUT5(),
+	.CLKOUTDCM0(),
+	.CLKOUTDCM1(),
+	.CLKOUTDCM2(),
+	.CLKOUTDCM3(),
+	.CLKOUTDCM4(),
+	.CLKOUTDCM5(),
+	.DO(),
+	.DRDY(),
+	.LOCKED(pll_lckd),
+	.CLKFBIN(buf_pll_fb_out),
+	.CLKIN1(clkin_bufio),
+	.CLKIN2(1'b0),
+	.CLKINSEL(1'b1),
+	.DADDR(5'b00000),
+	.DCLK(1'b0),
+	.DEN(1'b0),
+	.DI(16'h0000),
+	.DWE(1'b0),
+	.RST(1'b0),
+	.REL(1'b0)
+);
+
+BUFG bufg_sys_clk(
+	.I(pllout0),
 	.O(sys_clk)
 );
+
+BUFPLL #(
+	.DIVIDE(8)
+) bufpll (
+	.PLLIN(pllout1),
+	.GCLK(sys_clk),
+	.LOCKED(pll_lckd),
+	.IOCLK(serdes_clk),
+	.LOCK(),
+	.SERDESSTROBE(serdes_strobe)
+);
+
+wire resetin = ~resetin_n;
+wire hard_reset;
 
 `ifndef SIMULATION
 /* Synchronize the reset input */
@@ -474,7 +570,10 @@ wire [1:0] tdc_calib;
 stdc_hostif tdc(
 	.sys_rst_i(sys_rst),
 	.sys_clk_i(sys_clk),
-
+	
+	.serdes_clk_i(serdes_clk),
+	.serdes_strobe_i(serdes_strobe),
+	
 	.wb_addr_i(tdc_adr),
 	.wb_data_i(tdc_dat_w),
 	.wb_data_o(tdc_dat_r),
@@ -483,6 +582,7 @@ stdc_hostif tdc(
 	.wb_stb_i(tdc_stb),
 	.wb_we_i(tdc_we),
 	.wb_ack_o(tdc_ack),
+	.irq_o(),
 
 	.cc_rst_i(1'b0),
 	.cc_cy_o(),
