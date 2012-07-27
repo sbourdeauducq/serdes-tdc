@@ -213,7 +213,8 @@ wire [31:0]	brg_adr,
 		bram_adr,
 		sram_adr,
 		csrbrg_adr,
-		tdc_adr;
+		tdc0_adr,
+		tdc1_adr;
 
 wire [2:0]	brg_cti,
 		bram_cti,
@@ -224,31 +225,38 @@ wire [31:0]	bram_dat_r,
 		sram_dat_w,
 		csrbrg_dat_r,
 		csrbrg_dat_w,
-		tdc_dat_r,
-		tdc_dat_w;
+		tdc0_dat_r,
+		tdc0_dat_w,
+		tdc1_dat_r,
+		tdc1_dat_w;
 
 wire [3:0]	bram_sel,
 		sram_sel,
-		tdc_sel;
+		tdc0_sel,
+		tdc1_sel;
 
 wire		csrbrg_we,
 		sram_we,
-		tdc_we;
+		tdc0_we,
+		tdc1_we;
 
 wire		bram_cyc,
 		sram_cyc,
 		csrbrg_cyc,
-		tdc_cyc;
+		tdc0_cyc,
+		tdc1_cyc;
 
 wire		bram_stb,
 		sram_stb,
 		csrbrg_stb,
-		tdc_stb;
+		tdc0_stb,
+		tdc1_stb;
 
 wire		bram_ack,
 		sram_ack,
 		csrbrg_ack,
-		tdc_ack;
+		tdc0_ack,
+		tdc1_ack;
 
 //---------------------------------------------------------------------------
 // Wishbone switch
@@ -259,8 +267,8 @@ conbus #(
 	.s1_addr(3'b001),	// free		0x20000000
 	.s2_addr(3'b010),	// sram		0x40000000
 	.s3_addr(3'b100),	// CSR bridge	0x80000000
-	.s4_addr(3'b101),	// TDC		0xa0000000
-	.s5_addr(3'b110)	// free		0xc0000000
+	.s4_addr(3'b101),	// TDC1		0xa0000000
+	.s5_addr(3'b110)	// TDC2		0xc0000000
 ) conbus (
 	.sys_clk(sys_clk),
 	.sys_rst(sys_rst),
@@ -361,20 +369,23 @@ conbus #(
 	.s3_stb_o(csrbrg_stb),
 	.s3_ack_i(csrbrg_ack),
 	// Slave 4
-	.s4_dat_i(tdc_dat_r),
-	.s4_dat_o(tdc_dat_w),
-	.s4_adr_o(tdc_adr),
-	.s4_we_o(tdc_we),
-	.s4_cyc_o(tdc_cyc),
-	.s4_stb_o(tdc_stb),
-	.s4_sel_o(tdc_sel),
-	.s4_ack_i(tdc_ack),
+	.s4_dat_i(tdc0_dat_r),
+	.s4_dat_o(tdc0_dat_w),
+	.s4_adr_o(tdc0_adr),
+	.s4_we_o(tdc0_we),
+	.s4_cyc_o(tdc0_cyc),
+	.s4_stb_o(tdc0_stb),
+	.s4_sel_o(tdc0_sel),
+	.s4_ack_i(tdc0_ack),
 	// Slave 5
-	.s5_dat_i(32'bx),
-	.s5_adr_o(),
-	.s5_cyc_o(),
-	.s5_stb_o(),
-	.s5_ack_i(1'b0)
+	.s5_dat_i(tdc1_dat_r),
+	.s5_dat_o(tdc1_dat_w),
+	.s5_adr_o(tdc1_adr),
+	.s5_we_o(tdc1_we),
+	.s5_cyc_o(tdc1_cyc),
+	.s5_stb_o(tdc1_stb),
+	.s5_sel_o(tdc1_sel),
+	.s5_ack_i(tdc1_ack)
 );
 
 //------------------------------------------------------------------
@@ -419,9 +430,13 @@ wire timer0_irq;
 wire timer1_irq;
 wire uartrx_irq;
 wire uarttx_irq;
+wire tdc0_irq;
+wire tdc1_irq;
 
 wire [31:0] cpu_interrupt;
-assign cpu_interrupt = {27'd0,
+assign cpu_interrupt = {25'd0,
+	tdc1_irq,
+	tdc0_irq,
 	uarttx_irq,
 	uartrx_irq,
 	timer1_irq,
@@ -565,28 +580,49 @@ assign sda = sda_drivelow ? 1'b0 : 1'bz;
 // TDC
 //---------------------------------------------------------------------------
 wire [1:0] tdc_signal;
-wire [1:0] tdc_calib;
 
-stdc_hostif tdc(
+stdc_hostif tdc0(
 	.sys_rst_i(sys_rst),
 	.sys_clk_i(sys_clk),
 	
 	.serdes_clk_i(serdes_clk),
 	.serdes_strobe_i(serdes_strobe),
 	
-	.wb_addr_i(tdc_adr),
-	.wb_data_i(tdc_dat_w),
-	.wb_data_o(tdc_dat_r),
-	.wb_cyc_i(tdc_cyc),
-	.wb_sel_i(tdc_sel),
-	.wb_stb_i(tdc_stb),
-	.wb_we_i(tdc_we),
-	.wb_ack_o(tdc_ack),
-	.irq_o(),
+	.wb_addr_i(tdc0_adr),
+	.wb_data_i(tdc0_dat_w),
+	.wb_data_o(tdc0_dat_r),
+	.wb_cyc_i(tdc0_cyc),
+	.wb_sel_i(tdc0_sel),
+	.wb_stb_i(tdc0_stb),
+	.wb_we_i(tdc0_we),
+	.wb_ack_o(tdc0_ack),
+	.irq_o(tdc0_irq),
 
 	.cc_rst_i(1'b0),
 	.cc_cy_o(),
 	.signal_i(tdc_signal[0])
+);
+
+stdc_hostif tdc1(
+	.sys_rst_i(sys_rst),
+	.sys_clk_i(sys_clk),
+	
+	.serdes_clk_i(serdes_clk),
+	.serdes_strobe_i(serdes_strobe),
+	
+	.wb_addr_i(tdc1_adr),
+	.wb_data_i(tdc1_dat_w),
+	.wb_data_o(tdc1_dat_r),
+	.wb_cyc_i(tdc1_cyc),
+	.wb_sel_i(tdc1_sel),
+	.wb_stb_i(tdc1_stb),
+	.wb_we_i(tdc1_we),
+	.wb_ack_o(tdc1_ack),
+	.irq_o(tdc1_irq),
+
+	.cc_rst_i(1'b0),
+	.cc_cy_o(),
+	.signal_i(tdc_signal[1])
 );
 
 // test clock
