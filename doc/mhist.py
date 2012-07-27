@@ -13,7 +13,7 @@ csv_reader = csv.reader(open(filename, 'rb'), delimiter=',')
 data = []
 for row in csv_reader:
     if (polarity.find(row[0]) != -1):
-        data.append((float(row[5])-float(row[2]))*8000.0/2.0**13.0)
+        data.append(float(row[1]))
 
 m, M = min(data), max(data)
 mu = pylab.mean(data)
