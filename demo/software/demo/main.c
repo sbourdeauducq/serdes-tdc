@@ -241,6 +241,7 @@ static void do_command(char *c)
 	/* payload */
 	else if(strcmp(token, "temp") == 0) temp();
 	else if(strcmp(token, "daclevel") == 0) daclevel(get_token(&c));
+	else if(strcmp(token, "tdc") == 0) tdc();
 	else if(strcmp(token, "diff") == 0) diff();
 	
 	else if(strcmp(token, "") != 0)
@@ -273,16 +274,14 @@ static void crcsw()
 }
 
 static const char banner[] =
-	"\nTime to Digital Converter demo\n\n";
+	"\nSERDES-based Time to Digital Converter demo\n\n";
 
 int main(int i, char **c)
 {
 	char buffer[64];
 
-	/* Display a banner as soon as possible to show that the system is alive */
 	putsnonl(banner);
 	crcsw();
-	stdc_reset();
 
 	while(1) {
 		putsnonl("\e[1mTDC>\e[0m ");
