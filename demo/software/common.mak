@@ -1,30 +1,37 @@
 TARGET_PREFIX=lm32-elf
-CLANG=clang -ccc-host-triple $(TARGET_PREFIX)
 
-CC_normal := $(CLANG)
+ifeq ($(USE_GCC),1)
+	GCC=$(TARGET_PREFIX)-gcc -mbarrel-shift-enabled -mmultiply-enabled -mdivide-enabled -msign-extend-enabled
+	CC_normal := $(GCC)
+	CC_quiet = @echo " CC " $@ && $(GCC)
+else
+	CLANG=clang -ccc-host-triple $(TARGET_PREFIX)
+	CC_normal := $(CLANG)
+	CC_quiet = @echo " CC " $@ && $(CLANG)
+endif
+
 AR_normal := $(TARGET_PREFIX)-ar
 LD_normal := $(TARGET_PREFIX)-ld
 OBJCOPY_normal := $(TARGET_PREFIX)-objcopy
 RANLIB_normal := $(TARGET_PREFIX)-ranlib
 
-CC_quiet = @echo " CC " $@ && $(CLANG)
 AR_quiet = @echo " AR " $@ && $(TARGET_PREFIX)-ar
 LD_quiet = @echo " LD " $@ && $(TARGET_PREFIX)-ld
 OBJCOPY_quiet = @echo " OBJCOPY " $@ && $(TARGET_PREFIX)-objcopy
 RANLIB_quiet = @echo " RANLIB  " $@ && $(TARGET_PREFIX)-ranlib
 
 ifeq ($(V),1)
-    CC = $(CC_normal)
-    AR = $(AR_normal)
-    LD = $(LD_normal)
-    OBJCOPY = $(OBJCOPY_normal)
-    RANLIB = $(RANLIB_normal)
+	CC = $(CC_normal)
+	AR = $(AR_normal)
+	LD = $(LD_normal)
+	OBJCOPY = $(OBJCOPY_normal)
+	RANLIB = $(RANLIB_normal)
 else
-    CC = $(CC_quiet)
-    AR = $(AR_quiet)
-    LD = $(LD_quiet)
-    OBJCOPY = $(OBJCOPY_quiet)
-    RANLIB = $(RANLIB_quiet)
+	CC = $(CC_quiet)
+	AR = $(AR_quiet)
+	LD = $(LD_quiet)
+	OBJCOPY = $(OBJCOPY_quiet)
+	RANLIB = $(RANLIB_quiet)
 endif
 
 # Toolchain options
