@@ -116,16 +116,16 @@ begin
 				looking_for <= '1';
 			else
 				detect_o <= '0';
-				for i in 7 downto 0 loop
+				for i in 0 to 7 loop
 					if samples(i) = looking_for then
 						detect_o <= '1';
 						polarity_o <= looking_for;
 						timestamp_cc_o <= coarse_counter;
-						timestamp_8th_o <= std_logic_vector(to_unsigned(7-i, 3));
+						timestamp_8th_o <= std_logic_vector(to_unsigned(i, 3));
 						exit;
 					end if;
 				end loop;
-				looking_for <= not samples(0);
+				looking_for <= not samples(7);
 			end if;
 		end if;
 	end process;
