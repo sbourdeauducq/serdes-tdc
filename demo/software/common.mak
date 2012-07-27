@@ -1,13 +1,18 @@
 TARGET_PREFIX=lm32-elf
 
-ifeq ($(USE_GCC),1)
-	GCC=$(TARGET_PREFIX)-gcc -mbarrel-shift-enabled -mmultiply-enabled -mdivide-enabled -msign-extend-enabled
-	CC_normal := $(GCC)
-	CC_quiet = @echo " CC " $@ && $(GCC)
-else
-	CLANG=clang -ccc-host-triple $(TARGET_PREFIX)
+ifeq ($(USE_CLANG),1)
+	# FIXME: clang/llvm target features are broken
+	CLANG=clang -ccc-host-triple $(TARGET_PREFIX) \
+		-Xclang -target-feature -Xclang -div \
+		-Xclang -target-feature -Xclang -mul \
+		-Xclang -target-feature -Xclang -barrel \
+		-Xclang -target-feature -Xclang -signextend
 	CC_normal := $(CLANG)
 	CC_quiet = @echo " CC " $@ && $(CLANG)
+else
+	GCC=$(TARGET_PREFIX)-gcc
+	CC_normal := $(GCC)
+	CC_quiet = @echo " CC " $@ && $(GCC)
 endif
 
 AR_normal := $(TARGET_PREFIX)-ar
