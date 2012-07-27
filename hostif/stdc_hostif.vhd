@@ -59,7 +59,7 @@ begin
 				if (wb_cyc_i = '1') and (wb_stb_i = '1') and (ack = '0') then
 					ack <= '1';
 					wb_data_o <= (wb_data_o'range => '0');
-					case wb_addr_i(1 downto 0) is
+					case wb_addr_i(3 downto 2) is
 						when "00" => wb_data_o(0) <= cc_pending;
 						when "01" => wb_data_o(0) <= event_pending;
 						when "10" => wb_data_o(0) <= polarity;
@@ -67,7 +67,7 @@ begin
 						when others => null;
 					end case;
 					if (wb_we_i = '1') then
-						case wb_addr_i(1 downto 0) is
+						case wb_addr_i(3 downto 2) is
 							when "00" => cc_pending <= '0';
 							when "01" => event_pending <= '0';
 							when others => null;
