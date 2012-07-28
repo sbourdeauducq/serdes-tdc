@@ -625,18 +625,22 @@ stdc_hostif tdc1(
 	.signal_i(tdc_signal[1])
 );
 
-// test clock
-wire test_clkx;
+// forward system clock
 wire test_clk;
-ringosc #(
-	.g_LENGTH(31)
-) calib_osc (
-	.en_i(~sys_rst),
-	.clk_o(test_clkx)
+ODDR2 #(
+	.DDR_ALIGNMENT("NONE"),
+	.INIT(1'b0),
+	.SRTYPE("SYNC")
+) clock_forward (
+	.Q(test_clk),
+	.C0(sys_clk),
+	.C1(~sys_clk),
+	.CE(1'b1),
+	.D0(1'b1),
+	.D1(1'b0),
+	.R(1'b0),
+	.S(1'b0)
 );
-reg [18:0] test_clkdiv;
-always @(posedge test_clkx) test_clkdiv <= test_clkdiv + 4'd1;
-assign test_clk = test_clkdiv[18];
 
 // IO
 assign test_clk_oe_n = 1'b0;
