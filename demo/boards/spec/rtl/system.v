@@ -654,7 +654,7 @@ IBUFDS ibuf_tdc_signal0(
 	.O(tdc_signal[0])
 );
 assign tdc_signal_oe_n[1] = 1'b1;
-assign tdc_signal_term_en[1] = 1'b0;
+assign tdc_signal_term_en[1] = 1'b1;
 IBUFDS ibuf_tdc_signal1(
 	.I(tdc_signal_p[1]),
 	.IB(tdc_signal_n[1]),
