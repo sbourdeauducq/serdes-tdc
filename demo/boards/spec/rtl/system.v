@@ -625,22 +625,11 @@ stdc_hostif tdc1(
 	.signal_i(tdc_signal[1])
 );
 
-// forward system clock
-wire test_clk;
-ODDR2 #(
-	.DDR_ALIGNMENT("NONE"),
-	.INIT(1'b0),
-	.SRTYPE("SYNC")
-) clock_forward (
-	.Q(test_clk),
-	.C0(sys_clk),
-	.C1(~sys_clk),
-	.CE(1'b1),
-	.D0(1'b1),
-	.D1(1'b0),
-	.R(1'b0),
-	.S(1'b0)
-);
+// divide and forward system clock
+reg [26:0] test_clk_divide;
+always @(posedge sys_clk)
+	test_clk_divide <= test_clk_divide + 27'd1;
+assign test_clk = test_clk_divide[26];
 
 // IO
 assign test_clk_oe_n = 1'b0;
