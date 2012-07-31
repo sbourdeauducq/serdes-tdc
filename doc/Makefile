@@ -1,19 +1,15 @@
-all: tdc.pdf testreport.pdf
+all: stdc.pdf demodesign.pdf
 
-tdc.pdf: tdc.tex
+stdc.pdf: stdc.tex
 	pdflatex $<
 	pdflatex $<
 
-mhist.pdf: mhist.py measurements.csv
-	./mhist.py measurements.csv mhist.pdf 01 fit
-
-testreport.pdf: testreport.tex #mhist.pdf
+demodesign.pdf: demodesign.tex
 	pdflatex $<
 	pdflatex $<
 
 clean:
-	rm -f tdc.pdf tdc.aux tdc.log
-	rm -f mhist.pdf
-	rm -f testreport.pdf testreport.aux testreport.log
+	rm -f stdc.pdf stdc.aux stdc.log
+	rm -f demodesign.pdf demodesign.aux demodesign.log
 
 .PHONY: clean

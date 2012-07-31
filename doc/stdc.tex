@@ -1,0 +1,197 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage{fullpage}
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[normalem]{ulem}
+\usepackage[english]{babel}
+\usepackage{listings,babel}
+\usepackage{palatino}
+\lstset{breaklines=true,basicstyle=\ttfamily}
+\usepackage{graphicx}
+\usepackage{moreverb}
+\usepackage{url}
+\usepackage{tweaklist}
+\renewcommand{\itemhook}{\setlength{\topsep}{0pt}\setlength{\itemsep}{0pt}}
+\renewcommand{\enumhook}{\setlength{\topsep}{0pt}\setlength{\itemsep}{0pt}}
+\def\slantfrac#1#2{ \hspace{3pt}\!^{#1}\!\!\hspace{1pt}/ \hspace{2pt}\!\!_{#2}\!\hspace{3pt} }
+
+\title{SERDES-based Time to Digital Converter Core for Spartan-6 FPGAs}
+\author{S\'ebastien Bourdeauducq}
+\date{July 2012}
+\begin{document}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\maketitle{}
+\section{General description}
+The SERDES-based TDC core uses the \verb!ISERDES2! feature of the Spartan-6 FPGAs to sample a input pin at a high rate (up to 1080MHz in -3 speed grade according to the Spartan-6 datasheet) that the general-purpose logic does not allow.
+
+During each system clock cycle, the \verb!ISERDES2! captures eight samples of the input pin and generates a 8-bit word synchronous to the system clock. This word is then processed by the core to detect and timestamp transitions in the incoming signal. The core is capable of detecting only one transition per system clock cycle.
+
+The TDC core is also equipped with a \textit{coarse counter} that measures system clock periods. Its value is combined with the fine timestamp from the SERDES word processing in order to increase the range of the TDC up to dozens of seconds (or more).
+
+The core is written in VHDL.
+
+\section{Generics and ports}
+
+\subsection{Coarse counter width}
+The coarse counter width, in bits, is determined by the \verb!CC_WIDTH! generic. This generic determines the range of the TDC core (note that the range can be further extended using software techniques). The coarse counter overflows every $2^{CC\_WIDTH}$ system clock cycles.
+
+\subsection{Input signal}
+The input signal should be fed to the \verb!signal_i! port of the core.
+
+Note that \textit{two} \verb!ISERDES2! blocks are actually used (using the ``cascaded'' mode) in order to be able to reach a deserialization ratio of 8, according to the Xilinx recommendations. This requires that a differential input be used to feed the measured signal.
+
+\subsection{Timestamping}
+At every transition (rising or falling edge) of the input signal, the core pulses \verb!detect_o! high at the same time as it updates the timestamp output.
+
+The timestamp output consists of the following ports:
+\begin{itemize}
+\item \verb!polarity_o! identifies the polarity of the transition: 1 for a rising edge, 0 for a falling edge.
+\item \verb!timestamp_cc_o! gives the value of the coarse counter at the time the transition occured.
+\item \verb!timestamp_8th_o! gives the fine timestamp of the transition, measured in $\slantfrac{1}{8}^{ths}$ of the system clock period. This signal can be directly concatenated after \verb!timestamp_cc_o! to give a long-range timestamp expressed in $\slantfrac{1}{8}^{ths}$ of the system clock periods.
+\end{itemize}
+
+The value of these signals is retained and is valid until the next transition (in particular, the coarse timestamp output \textit{is not} the instantaneous value of the coarse counter).
+
+\subsection{Coarse counter}
+The TDC core has an input \verb!cc_rst_i! that disables and resets the coarse counter. It can be tied to 0.
+
+When the coarse counter overflows, the core generates a pulse on \verb!cc_cy_o!.
+
+\subsection{Clocking}
+\verb!sys_clk_i! is the system clock. Unless otherwise specified, all ports are synchronous to this clock.
+
+\verb!serdes_clk_i! is the sample clock for the input signal. Its frequency must be 8 times that of the system clock, and it must be phase-aligned with the latter. This signal feeds directly the \verb!ISERDES2! clock, so it must be generated as specified by Xilinx, for example using a \verb!PLL! and a \verb!BUFPLL!.
+
+\verb!serdes_strobe_i! is the clock enable signal which synchronizes the loading of data into the \verb!serdes_clk_i! SERDES pipeline stages so that words are properly aligned when resampled by \verb!sys_clk_i!. A \verb!BUFPLL! component can be used to generate this signal.
+
+An example clock generator in Verilog is given in the appendix. See the \textit{Spartan-6 FPGA Clocking Resources User Guide} and the \textit{Spartan-6 FPGA SelectIO Resources} documentation for more information.
+
+\subsection{Reset}
+The active-high synchronous \verb!sys_rst_i! signal resets the whole TDC core.
+
+\section{Host interface module}
+The optional host interface module connects the TDC core to a Wishbone bus.
+It is a separate top-level entity named \verb!stdc_hostif! that instantiates \verb!stdc!. It implements a Wishbone slave interface.
+
+It implements the following 32-bit registers:
+\begin{itemize}
+\item \verb!0x00!: whether the coarse counter has overflown. Write any value to this register to clear the flag.
+\item \verb!0x04!: whether a transition of the input signal has occured. Write any value to this register to clear the flag.
+\item \verb!0x08!: the polarity of the transition (1 for rising edge, 0 for falling edge).
+\item \verb!0x0c!: the timestamp of the transition. It is made of a 29-bit coarse counter value followed by a 3-bit fine timestamp.
+\end{itemize}
+
+Additionally, the host interface has an interrupt output which is asserted when registers \verb!0x00! or \verb!0x04! have a non-zero value.
+
+\pagebreak
+
+\section*{Appendix: example source code for clock generation}
+This code generates a 125MHz \verb!sys_clk!, a 1GHz \verb!serdes_clk! and the \verb!serdes_strobe! signal from a 125MHz differential source on \verb!clkin_p! and \verb!clkin_n!.
+
+\begin{verbatimtab}
+wire sys_clk;
+wire serdes_clk;
+wire serdes_strobe;
+
+wire clkin_se;
+IBUFGDS clkbuf(
+	.I(clkin_p),
+	.IB(clkin_n),
+	.O(clkin_se)
+);
+
+wire clkin_bufio;
+BUFIO2 #(
+	.DIVIDE(1),
+	.DIVIDE_BYPASS("FALSE"),
+	.I_INVERT("FALSE")
+) bufio (
+	.I(clkin_se),
+	.IOCLK(),
+	.DIVCLK(clkin_bufio),
+	.SERDESSTROBE()
+);
+
+wire pll_lckd;
+wire pll_fb_out;
+wire pllout0;
+wire pllout1;
+PLL_ADV #(
+	.BANDWIDTH("OPTIMIZED"),
+	.CLKFBOUT_MULT(8),
+	.CLKFBOUT_PHASE(0.0),
+	.CLKIN1_PERIOD(8.0),
+	.CLKIN2_PERIOD(8.0),
+	.CLKOUT0_DIVIDE(8),
+	.CLKOUT0_DUTY_CYCLE(0.5),
+	.CLKOUT0_PHASE(0),
+	.CLKOUT1_DIVIDE(1),
+	.CLKOUT1_DUTY_CYCLE(0.5),
+	.CLKOUT1_PHASE(0),
+	.CLKOUT2_DIVIDE(8),
+	.CLKOUT2_DUTY_CYCLE(0.5),
+	.CLKOUT2_PHASE(270.0),
+	.CLKOUT3_DIVIDE(8),
+	.CLKOUT3_DUTY_CYCLE(0.5),
+	.CLKOUT3_PHASE(0.0),
+	.CLKOUT4_DIVIDE(8),
+	.CLKOUT4_DUTY_CYCLE(0.5),
+	.CLKOUT4_PHASE(0),
+	.CLKOUT5_DIVIDE(8),
+	.CLKOUT5_DUTY_CYCLE(0.5),
+	.CLKOUT5_PHASE(0.0),
+	.COMPENSATION("INTERNAL"),
+	.DIVCLK_DIVIDE(1),
+	.REF_JITTER(0.100),
+	.CLK_FEEDBACK("CLKFBOUT"),
+	.SIM_DEVICE("SPARTAN6")
+) pll (
+	.CLKFBDCM(),
+	.CLKFBOUT(pll_fb_out),
+	.CLKOUT0(pllout0), /* < x1 clock for system */
+	.CLKOUT1(pllout1), /* < x8 clock for sampling */
+	.CLKOUT2(),
+	.CLKOUT3(),
+	.CLKOUT4(),
+	.CLKOUT5(),
+	.CLKOUTDCM0(),
+	.CLKOUTDCM1(),
+	.CLKOUTDCM2(),
+	.CLKOUTDCM3(),
+	.CLKOUTDCM4(),
+	.CLKOUTDCM5(),
+	.DO(),
+	.DRDY(),
+	.LOCKED(pll_lckd),
+	.CLKFBIN(pll_fb_out),
+	.CLKIN1(clkin_bufio),
+	.CLKIN2(1'b0),
+	.CLKINSEL(1'b1),
+	.DADDR(5'b00000),
+	.DCLK(1'b0),
+	.DEN(1'b0),
+	.DI(16'h0000),
+	.DWE(1'b0),
+	.RST(1'b0),
+	.REL(1'b0)
+);
+
+BUFG bufg_sys_clk(
+	.I(pllout0),
+	.O(sys_clk)
+);
+
+BUFPLL #(
+	.DIVIDE(8)
+) bufpll (
+	.PLLIN(pllout1),
+	.GCLK(sys_clk),
+	.LOCKED(pll_lckd),
+	.IOCLK(serdes_clk),
+	.LOCK(),
+	.SERDESSTROBE(serdes_strobe)
+);
+\end{verbatimtab}
+
+\end{document}
