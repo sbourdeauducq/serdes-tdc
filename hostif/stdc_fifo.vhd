@@ -79,7 +79,7 @@ begin
 	begin
 		if rising_edge(sys_clk_i) then
 			if do_write = '1' then
-				storage(to_integer(unsigned(produce)) <= data_i;
+				storage(to_integer(unsigned(produce))) <= data_i;
 			end if;
 			storage_rda <= consume;
 		end if;
