@@ -125,17 +125,16 @@ begin
 						when "000" => wb_data_o(0) <= not fifo_empty;
 						when "001" => wb_data_o(0) <= fifo_do(32);
 						when "010" => wb_data_o <= fifo_do(31 downto 0);
-						-- 011 is FIFO control and is write-only
+						-- 011 is FIFO clear and is write-only
 						when "100" => wb_data_o(0) <= cc_pending;
 						when "101" => wb_data_o(0) <= overflow_pending;
 						when "110" => wb_data_o(1 downto 0) <= filter;
 						when others => null;
 					end case;
-					if (wb_we_i = '1') then
+					if wb_we_i = '1' then
 						case wb_addr_i(4 downto 2) is
-							when "011" =>
-								fifo_re <= wb_data_i(0);
-								fifo_clear <= wb_data_i(1);
+							when "000" => fifo_re <= '1';
+							when "011" => fifo_clear <= '1';
 							when "100" => cc_pending <= '0';
 							when "101" => overflow_pending <= '0';
 							when "110" => filter <= wb_data_i(1 downto 0);
