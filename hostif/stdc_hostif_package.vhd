@@ -28,4 +28,24 @@ component stdc_hostif is
 	);
 end component;
 
+component stdc_fifo is
+	generic(
+		D_DEPTH: positive;
+		D_WIDTH: positive
+	);
+	port(
+		sys_clk_i: in std_logic;
+		
+		clear_i: in std_logic;
+		
+		full_o: out std_logic;
+		we_i: in std_logic;
+		data_i: in std_logic_vector(D_WIDTH-1 downto 0);
+		
+		empty_o: out std_logic;
+		re_i: in std_logic;
+		data_o: out std_logic_vector(D_WIDTH-1 downto 0)
+	);
+end component;
+
 end package;
