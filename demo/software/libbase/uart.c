@@ -20,11 +20,12 @@
 #include <hw/uart.h>
 #include <hw/interrupts.h>
 
-void putchar(int c)
+int putchar(int c)
 {
 	CSR_UART_RXTX = c;
 	while(!(irq_pending() & IRQ_UARTTX));
 	irq_ack(IRQ_UARTTX);
+	return (unsigned char)c;
 }
 
 char readchar(void)

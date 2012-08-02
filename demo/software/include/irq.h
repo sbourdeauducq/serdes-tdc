@@ -19,10 +19,10 @@
 #define __IRQ_H
 
 void irq_enable(unsigned int en);
-unsigned int irq_isenabled(); /* < can we get interrupted? returns 0 within ISRs */
+unsigned int irq_isenabled(void); /* < can we get interrupted? returns 0 within ISRs */
 void irq_setmask(unsigned int mask);
-unsigned int irq_getmask();
-unsigned int irq_pending();
+unsigned int irq_getmask(void);
+unsigned int irq_pending(void);
 void irq_ack(unsigned int mask);
 
 #endif /* __IRQ_H */

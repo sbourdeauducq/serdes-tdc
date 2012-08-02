@@ -18,12 +18,12 @@
 #ifndef __UART_H
 #define __UART_H
 
-void uart_async_init();
-void uart_async_isr_rx();
-void uart_async_isr_tx();
+void uart_async_init(void);
+void uart_async_isr_rx(void);
+void uart_async_isr_tx(void);
 void uart_force_sync(int f);
 
-void putchar(int c);
+int putchar(int c);
 char readchar(void);
 int readchar_nonblock(void);
 

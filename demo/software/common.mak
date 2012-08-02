@@ -43,7 +43,7 @@ endif
 #
 INCLUDES = -I$(TDCDIR)/software/include/base -I$(TDCDIR)/software/include -I$(TDCDIR)/common
 CFLAGS = -O9 -Wall -Wstrict-prototypes -Wold-style-definition -Wshadow \
-	 -Wmissing-prototypes -fsigned-char -nostdinc $(INCLUDES)
+	 -Wmissing-prototypes -fsigned-char -fno-builtin -nostdinc $(INCLUDES)
 LDFLAGS = -nostdlib -nodefaultlibs
 
 # compile and generate dependencies, based on

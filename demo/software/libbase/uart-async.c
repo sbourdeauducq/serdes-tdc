@@ -34,14 +34,14 @@ static char rx_buf[UART_RINGBUFFER_SIZE_RX];
 static volatile unsigned int rx_produce;
 static volatile unsigned int rx_consume;
 
-void uart_async_isr_rx()
+void uart_async_isr_rx(void)
 {
 	irq_ack(IRQ_UARTRX);
 	rx_buf[rx_produce] = CSR_UART_RXTX;
 	rx_produce = (rx_produce + 1) & UART_RINGBUFFER_MASK_RX;
 }
 
-char readchar()
+char readchar(void)
 {
 	char c;
 	
@@ -51,7 +51,7 @@ char readchar()
 	return c;
 }
 
-int readchar_nonblock()
+int readchar_nonblock(void)
 {
 	return (rx_consume != rx_produce);
 }
@@ -66,7 +66,7 @@ static volatile int tx_cts;
 
 static int force_sync;
 
-void uart_async_isr_tx()
+void uart_async_isr_tx(void)
 {
 	irq_ack(IRQ_UARTTX);
 	if(tx_produce != tx_consume) {
@@ -99,7 +99,7 @@ void putchar(int c)
 	irq_setmask(oldmask);
 }
 
-void uart_async_init()
+void uart_async_init(void)
 {
 	unsigned int mask;
 	

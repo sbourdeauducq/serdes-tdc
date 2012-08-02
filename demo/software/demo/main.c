@@ -250,7 +250,7 @@ static void do_command(char *c)
 
 extern unsigned int _edata;
 
-static void crcsw()
+static void crcsw(void)
 {
 	unsigned int length;
 	unsigned int expected_crc;

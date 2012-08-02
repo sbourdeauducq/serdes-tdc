@@ -18,41 +18,41 @@
 #ifndef __CTYPE_H
 #define __CTYPE_H
 
-static inline int isdigit(char c)
+static inline int isdigit(int c)
 {
 	return (c >= '0') && (c <= '9');
 }
 
-static inline int isxdigit(char c)
+static inline int isxdigit(int c)
 {
 	return isdigit(c) || ((c >= 'a') && (c <= 'f')) || ((c >= 'A') && (c <= 'F'));
 }
 
-static inline int isupper(char c)
+static inline int isupper(int c)
 {
 	return (c >= 'A') && (c <= 'Z');
 }
 
-static inline int islower(char c)
+static inline int islower(int c)
 {
 	return (c >= 'a') && (c <= 'z');
 }
 
-static inline unsigned char tolower(unsigned char c)
+static inline int tolower(int c)
 {
 	if (isupper(c))
 		c -= 'A'-'a';
 	return c;
 }
 
-static inline unsigned char toupper(unsigned char c)
+static inline int toupper(int c)
 {
 	if (islower(c))
 		c -= 'a'-'A';
 	return c;
 }
 
-static inline char isspace(unsigned char c)
+static inline int isspace(int c)
 {
 	if(c == ' '
 		|| c == '\f'
