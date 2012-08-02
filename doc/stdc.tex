@@ -17,7 +17,7 @@
 
 \title{SERDES-based Time to Digital Converter Core for Spartan-6 FPGAs}
 \author{S\'ebastien Bourdeauducq}
-\date{July 2012}
+\date{August 2012}
 \begin{document}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{5pt}
@@ -74,15 +74,36 @@ The active-high synchronous \verb!sys_rst_i! signal resets the whole TDC core.
 The optional host interface module connects the TDC core to a Wishbone bus.
 It is a separate top-level entity named \verb!stdc_hostif! that instantiates \verb!stdc!. It implements a Wishbone slave interface.
 
-It implements the following 32-bit registers:
+The host interface module contains a FIFO buffer that makes it possible to correctly retrieve bursts of events in spite of software latency.
+The FIFO can use the block RAM resources of the FPGA for an efficient implementation.
+
+When the FIFO is full, any subsequent transition in the input signal causes the FIFO overflow flag to be raised, and the timestamp of this event is lost. Existing events inside the FIFO are not affected.
+
+The host interface module features the following 32-bit registers:
 \begin{itemize}
-\item \verb!0x00!: whether the coarse counter has overflown. Write any value to this register to clear the flag.
-\item \verb!0x04!: whether a transition of the input signal has occured. Write any value to this register to clear the flag.
-\item \verb!0x08!: the polarity of the transition (1 for rising edge, 0 for falling edge).
-\item \verb!0x0c!: the timestamp of the transition. It is made of a 29-bit coarse counter value followed by a 3-bit fine timestamp.
+\item \verb!0x00!: whether an event (transition of the input signal) awaits processing (i.e. the FIFO is not empty). Writing to this register acknowledges the event and proceeds to the next one in the FIFO.
+\item \verb!0x04!: the polarity of the transition (1 for rising edge, 0 for falling edge).
+\item \verb!0x08!: the timestamp of the transition. It is made of a 29-bit coarse counter value followed by a 3-bit fine timestamp.
+\item \verb!0x0c!: writing any value to this register removes all events from the FIFO.
+\item \verb!0x10!: whether the coarse counter has overflown. Write any value to this register to clear the flag.
+\item \verb!0x14!: whether the FIFO has overflown (i.e. there was at least one transition of the input signal whose timestamp could not be stored into the FIFO due to lack of space). Write any value to this register to clear the flag.
+\item \verb!0x18!: defines which transitions to report:
+\begin{itemize}
+\item 0: do not report transitions (i.e. disable the TDC core)
+\item 1: report rising edges
+\item 2: report falling edges
+\item 3: report both rising and falling edges (default)
+\end{itemize}
 \end{itemize}
 
-Additionally, the host interface has an interrupt output which is asserted when registers \verb!0x00! or \verb!0x04! have a non-zero value.
+Additionally, the host interface has an interrupt output which is asserted in any of the following cases:
+\begin{itemize}
+\item The FIFO is not empty.
+\item The coarse counter has overflown and register \verb!0x10! has not been written to yet.
+\item The FIFO has overflown and register \verb!0x14! has not been written to yet.
+\end{itemize}
+
+Reading an event is done by checking that register \verb!0x00! has a non-zero value (i.e. making sure that there is an event to read), reading registers \verb!0x04! and/or \verb!0x08!, and writing any value to \verb!0x00! to acknowledge this event (i.e. remove it from the FIFO).
 
 \pagebreak
 
